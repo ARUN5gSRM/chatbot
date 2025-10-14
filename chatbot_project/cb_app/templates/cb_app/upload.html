@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Upload Excel | Chatbot{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-0 p-4">
+            <h3 class="text-center mb-3">Upload Excel File</h3>
+
+            {% if message %}
+                <div class="alert alert-info">{{ message }}</div>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <input type="file" name="file" class="form-control" required>
+                </div>
+                <div class="d-grid">
+                    <button class="btn btn-success">Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
