@@ -1,0 +1,12 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    border-radius: 10px;
+}
+
+#chatbox {
+    background-color: #fdfdfd;
+    border: 1px solid #dee2e6;
+}
