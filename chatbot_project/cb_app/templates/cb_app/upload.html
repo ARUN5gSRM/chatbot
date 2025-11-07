@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Upload Excel | Chatbot{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-6">
+        <div class="card shadow border-0 p-4">
+            <h3 class="text-center mb-3">📁 Upload Excel File</h3>
+
+            {% if message %}
+                <div id="messageBox" class="alert alert-info text-center">
+                    {{ message }}
+                </div>
+            {% else %}
+                <div id="messageBox" class="alert alert-info text-center d-none"></div>
+            {% endif %}
+
+            <form id="uploadForm" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <input type="file" name="file" class="form-control" id="fileInput" required>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-success" id="uploadBtn">🚀 Upload</button>
+                </div>
+            </form>
+
+            <!-- Progress Bar -->
+            <div class="progress mt-4 d-none" id="progressContainer" style="height: 25px;">
+                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                     role="progressbar" style="width: 0%">0%</div>
+            </div>
+
+            <!-- Spinner -->
+            <div class="text-center mt-4 d-none" id="spinnerContainer">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Processing...</span>
+                </div>
+                <p class="mt-2 fw-semibold" id="statusText">Processing file...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add jQuery for progress simulation -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(function () {
+    $("#uploadForm").on("submit", function (e) {
+        e.preventDefault();
+
+        const form = this;
+        const fileInput = $("#fileInput")[0];
+        if (!fileInput.files.length) {
+            alert("Please select a file before uploading.");
+            return;
+        }
+
+        // UI feedback
+        $("#uploadBtn").prop("disabled", true).text("Uploading...");
+        $("#progressContainer").removeClass("d-none");
+        $("#spinnerContainer").removeClass("d-none");
+        $("#statusText").text("Uploading file to server...");
+        $("#messageBox").addClass("d-none");
+
+        const formData = new FormData(form);
+
+        // Simulate progress while Django processes
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            if (progress < 90) {
+                progress += Math.random() * 10;
+                $("#progressBar").css("width", progress + "%").text(Math.floor(progress) + "%");
+            }
+        }, 400);
+
+        $.ajax({
+            url: window.location.href,
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (response) {
+                clearInterval(progressInterval);
+                $("#progressBar").css("width", "100%").text("100%");
+                $("#statusText").text("Generating embeddings via Ollama...");
+                setTimeout(() => {
+                    $("#spinnerContainer").addClass("d-none");
+                    $("#messageBox").removeClass("d-none").html(response.message || "✅ Upload complete!");
+                    $("#uploadBtn").prop("disabled", false).text("Upload Again");
+                    $("#progressContainer").addClass("d-none");
+                }, 1500);
+            },
+            error: function (xhr) {
+                clearInterval(progressInterval);
+                $("#spinnerContainer").addClass("d-none");
+                $("#progressContainer").addClass("d-none");
+                $("#messageBox").removeClass("d-none")
+                    .removeClass("alert-info").addClass("alert-danger")
+                    .html("❌ Error: " + (xhr.responseText || "Something went wrong."));
+                $("#uploadBtn").prop("disabled", false).text("Try Again");
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

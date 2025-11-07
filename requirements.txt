@@ -1,0 +1,10 @@
+psycopg2-binary
+pandas
+sqlalchemy
+openpyxl
+nltk
+scikit-learn
+numpy
+rapidfuzz
+rank_bm25
+python-dotenv

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Ticket Generated{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg p-5 rounded-3 border-0">
+    <h2 class="text-success mb-3"><i class="bi bi-check-circle-fill"></i> Ticket Generated Successfully</h2>
+    <h4 class="fw-bold text-primary">Ticket ID: {{ ticket.ticket_id }}</h4>
+    <p><strong>Created on:</strong> {{ ticket.timestamp|date:"M d, Y H:i" }}</p>
+    <p><strong>User:</strong> {{ ticket.user_name }}</p>
+    <p><strong>Priority:</strong>
+      <span class="badge {% if ticket.priority == 'HIGH' %}bg-danger{% else %}bg-info text-dark{% endif %}">
+        {{ ticket.priority }}
+      </span>
+    </p>
+    <p><strong>Assigned to:</strong> {{ ticket.assigned_to }}</p>
+
+    <hr>
+    <h5 class="text-secondary">Original Query</h5>
+    <pre class="bg-light p-3 rounded">{{ ticket.query_text }}</pre>
+
+    <h5 class="text-secondary">Last Bot Responses</h5>
+    <ul class="list-group mb-3">
+      {% for line in ticket.last_bot_responses.responses %}
+        <li class="list-group-item">{{ line }}</li>
+      {% endfor %}
+    </ul>
+
+    <h5 class="text-secondary">Retrieved Results (IDs or Chunk Info)</h5>
+    <pre class="bg-light p-3 rounded">{{ ticket.retrieved_results|json_script:"retrieved_results" }}</pre>
+
+    <h5 class="text-secondary">Similarity Threshold Used</h5>
+    <p class="fw-bold">{{ ticket.similarity_threshold_used }}</p>
+
+    <h5 class="text-secondary">Conversation History (last 10 turns)</h5>
+    <pre class="bg-light p-3 rounded small">{{ ticket.chat_history|json_script:"chat_history" }}</pre>
+
+    <div class="text-center mt-4">
+      <a href="{% url 'cb_app:index' %}" class="btn btn-outline-primary btn-lg">
+        🏠 Back to Home
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
