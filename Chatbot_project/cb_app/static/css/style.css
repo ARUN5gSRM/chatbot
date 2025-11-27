@@ -1,0 +1,17 @@
+/* core adjustments and colors */
+body { background-color: #f7fbff; color: #212529; font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+
+/* make container content comfortable */
+.container, .container-fluid { max-width: 1200px; }
+
+/* card tweaks */
+.card { border-radius: 10px; }
+
+/* chatbox styling */
+#chatbox { background-color: #ffffff; border: 1px solid #e9f3ff; padding: 12px; border-radius: 8px; }
+
+/* buttons spacing */
+.btn-sm { padding: .35rem .6rem; }
+
+/* small helper */
+.small-muted { font-size:.85rem; color:#6c757d; }

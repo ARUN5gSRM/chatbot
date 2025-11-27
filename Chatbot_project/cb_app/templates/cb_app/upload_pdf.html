@@ -1,0 +1,20 @@
+{% extends "cb_app/base.html" %}
+{% block title %}Upload PDF | Chatbot{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card p-4 shadow-sm">
+    <h4>📄 Upload PDF</h4>
+    {% if messages %}
+      {% for m in messages %}<div class="alert alert-{{ m.tags }}">{{ m }}</div>{% endfor %}
+    {% endif %}
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="mb-3">
+        <input type="file" name="pdf" accept="application/pdf" required class="form-control">
+      </div>
+      <button class="btn btn-primary">Upload</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
