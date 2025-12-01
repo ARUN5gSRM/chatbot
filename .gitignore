@@ -1,0 +1,26 @@
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE files
+.idea/
+.vscode/
+
+# Django stuff
+db.sqlite3
+
+# Logs
+*.log
+
+# Local model weights (Git LFS handles them)
+local_models/**
+
+# OS junk
+.DS_Store
+Thumbs.db
