@@ -1,10 +1,24 @@
-Django==4.2.26
-psycopg2-binary>=2.9.7
+Django==4.2.11
+
+numpy==1.26.4
+scipy==1.13.1
+
+torch==2.1.2
+transformers==4.30.2
 sentence-transformers==2.2.2
-torch>=2.0.0            # CPU install; if GPU, install appropriate torch build
-faiss-cpu>=1.7.4
-numpy>=1.25.0
-pandas>=2.0.3
-nltk>=3.8.1
-PyMuPDF>=1.22.0         # for fitz PDF parsing
-python-dotenv>=1.0.0    # optional, for env vars
+huggingface-hub==0.16.4
+tokenizers==0.13.3
+
+faiss-cpu==1.7.4
+
+pandas==2.2.2
+openpyxl==3.1.2
+
+python-magic==0.4.27
+PyPDF2==3.0.1
+pymupdf==1.24.9
+
+tqdm==4.67.1
+requests==2.32.3
+Pillow==10.3.0
+
