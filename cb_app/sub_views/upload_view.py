@@ -1,12 +1,11 @@
 # cb_app/sub_views/upload_view.py
-import json
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse
 from django.contrib import messages
 
-from cb_app.sub_models.data_ingest import ingest_excel_file
-from cb_app.sub_models.index_manager import faiss_manager
+from cb_app.logic.data_ingest import ingest_excel_file
+from cb_app.logic.index_manager import faiss_manager
 
 @login_required
 def upload_view(request):

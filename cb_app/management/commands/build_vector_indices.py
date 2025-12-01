@@ -2,7 +2,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
-from cb_app.sub_models.index_manager import faiss_manager
+from cb_app.logic.index_manager import faiss_manager
 from cb_app.models import Ticket, PDFChunk
 
 class Command(BaseCommand):

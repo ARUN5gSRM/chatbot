@@ -7,7 +7,7 @@ import numpy as np
 from nltk.tokenize import sent_tokenize
 from .embedding_model import default_embedder
 from .index_manager import faiss_manager
-from ..models import PDFChunk
+from cb_app.models import PDFChunk
 from django.db import connection
 
 NAMESPACE_PDF = "pdf_chunks"

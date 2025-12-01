@@ -3,9 +3,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
-from cb_app.sub_models.pdf_core import extract_text_from_pdf, chunk_text, embed_texts
+from cb_app.logic.pdf_core import extract_text_from_pdf, chunk_text, embed_texts
 from cb_app.models import PDFDocument, PDFChunk
-from cb_app.sub_models.index_manager import faiss_manager
+from cb_app.logic.index_manager import faiss_manager
 
 NAMESPACE_PDF_BASE = "pdf_session_"
 

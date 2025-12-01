@@ -6,7 +6,7 @@ generate embeddings, store in DB (ArrayField), and update FAISS in-memory index.
 import re
 import pandas as pd
 from django.contrib.auth.models import User
-from ..models import Ticket, PDFDocument, PDFChunk
+from cb_app.models import Ticket, PDFDocument, PDFChunk
 from .embedding_model import default_embedder
 from .index_manager import faiss_manager
 

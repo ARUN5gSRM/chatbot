@@ -9,7 +9,7 @@ from .session_helpers import (
 )
 from .embedding_model import default_embedder
 from .index_manager import faiss_manager
-from ..models import Ticket
+from cb_app.models import Ticket
 import numpy as np
 
 DEFAULT_TOP_K = 3

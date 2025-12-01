@@ -18,9 +18,6 @@ db.sqlite3
 # Logs
 *.log
 
-# Local model weights (Git LFS handles them)
-local_models/**
-
 # OS junk
 .DS_Store
 Thumbs.db

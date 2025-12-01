@@ -4,8 +4,8 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 
-from cb_app.sub_models.pdf_core import pdf_search
-from cb_app.sub_models.index_manager import faiss_manager
+from cb_app.logic.pdf_core import pdf_search
+from cb_app.logic.index_manager import faiss_manager
 
 @login_required
 @require_POST

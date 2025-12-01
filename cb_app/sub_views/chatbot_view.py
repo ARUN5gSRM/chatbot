@@ -1,14 +1,13 @@
 # cb_app/sub_views/chatbot_view.py
 import json
-from typing import Optional
 from django.shortcuts import render, redirect
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 
-from cb_app.sub_models.index_manager import faiss_manager
-from cb_app.sub_models.chatbot_core import chatbot_search
-from cb_app.sub_models.session_helpers import get_recent_conversation, clear_conversation
+from cb_app.logic.index_manager import faiss_manager
+from cb_app.logic.chatbot_core import chatbot_search
+from cb_app.logic.session_helpers import get_recent_conversation, clear_conversation
 from cb_app.models import Ticket
 
 NAMESPACE_TICKETS_BASE = "tickets_session_"

@@ -5,7 +5,7 @@ from django.contrib.auth import login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 
-from cb_app.sub_models.index_manager import faiss_manager
+from cb_app.logic.index_manager import faiss_manager
 
 def signup_view(request):
     if request.method == "POST":
