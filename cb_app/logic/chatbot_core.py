@@ -1,4 +1,4 @@
-# cb_app/sub_models/chatbot_core.py
+# cb_app/logic/chatbot_core.py
 from typing import List, Dict, Any, Optional
 from django.db import connection
 from .session_helpers import (
@@ -70,11 +70,17 @@ def _normalize_vector_safe(vec: Any) -> Optional[np.ndarray]:
     return (arr / norm).astype("float32")
 
 
-def semantic_search(query: str, embedding_model=default_embedder, top_k: int = DEFAULT_TOP_K, threshold: float = DEFAULT_THRESHOLD):
+def semantic_search(
+    query: str,
+    embedding_model=default_embedder,
+    top_k: int = DEFAULT_TOP_K,
+    threshold: float = DEFAULT_THRESHOLD,
+    namespace: str = NAMESPACE_TICKETS,
+):
     """
     Perform semantic retrieval:
     1) Embed + normalize query
-    2) Try FAISS first (fast)
+    2) Try FAISS first (fast) in the given namespace
     3) Fallback to Postgres dot-product if FAISS has no vectors
     4) Filter by configured threshold and return top_k results
     """
@@ -88,7 +94,7 @@ def semantic_search(query: str, embedding_model=default_embedder, top_k: int = D
         return []
 
     # Try FAISS (faiss_manager will also normalize internally, but we normalize here too)
-    candidates = faiss_manager.search(NAMESPACE_TICKETS, q_arr, top_k=top_k * FETCH_FACTOR)
+    candidates = faiss_manager.search(namespace, q_arr, top_k=top_k * FETCH_FACTOR)
     results: List[Dict[str, Any]] = []
 
     if candidates:
@@ -116,7 +122,14 @@ def semantic_search(query: str, embedding_model=default_embedder, top_k: int = D
     return filtered[:top_k]
 
 
-def chatbot_search(request, query: str, embedding_model=default_embedder, top_k: int = DEFAULT_TOP_K, threshold: float = DEFAULT_THRESHOLD):
+def chatbot_search(
+    request,
+    query: str,
+    embedding_model=default_embedder,
+    top_k: int = DEFAULT_TOP_K,
+    threshold: float = DEFAULT_THRESHOLD,
+    namespace: str = NAMESPACE_TICKETS,
+):
     """
     Main chatbot wrapper: maintain session history, run semantic search and
     append assistant message.
@@ -124,7 +137,13 @@ def chatbot_search(request, query: str, embedding_model=default_embedder, top_k:
     init_session_history_if_needed(request)
     append_user_message(request, query)
 
-    hits = semantic_search(query, embedding_model, top_k=top_k, threshold=threshold)
+    hits = semantic_search(
+        query,
+        embedding_model=embedding_model,
+        top_k=top_k,
+        threshold=threshold,
+        namespace=namespace,
+    )
 
     # Store context for ticket generation / debugging
     request.session["last_query"] = query

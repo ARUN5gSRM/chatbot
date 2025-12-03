@@ -65,11 +65,11 @@ def pdf_chat_view(request):
                 "error": "Please enter a question."
             })
 
-        # Build or load FAISS index for the session
-        _ensure_pdf_namespace(request)
+        # Build or load FAISS index for the session and get namespace
+        ns = _ensure_pdf_namespace(request)
 
-        # Use pdf_core.pdf_search (FAISS first, SQL fallback)
-        results = pdf_search(query, top_k=3)
+        # Use pdf_core.pdf_search (FAISS first, SQL fallback) with session namespace
+        results = pdf_search(query, top_k=3, namespace=ns)
 
         # If AJAX request → return JSON
         if request.content_type == "application/json" or request.headers.get("x-requested-with") == "XMLHttpRequest":

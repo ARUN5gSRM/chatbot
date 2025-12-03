@@ -58,11 +58,11 @@ def chatbot_view(request):
             return HttpResponseBadRequest("Invalid request payload")
 
         if query:
-            # ensure session-scoped index exists and is built
-            _ensure_session_namespace(request)
+            # ensure session-scoped index exists and is built, and get its namespace
+            ns = _ensure_session_namespace(request)
 
             # Run chatbot search (this will update session history inside)
-            results = chatbot_search(request, query)
+            results = chatbot_search(request, query, namespace=ns)
 
             # If AJAX/json requested, return JSON
             if request.content_type == "application/json" or request.headers.get("x-requested-with") == "XMLHttpRequest":

@@ -1,4 +1,4 @@
-# cb_app/sub_models/pdf_core.py
+# cb_app/logic/pdf_core.py
 
 from typing import List, Dict
 import re
@@ -171,12 +171,13 @@ def _pg_pdf_fullscan(q_emb: List[float], top_k: int = 3):
 # 5. MAIN PDF SEARCH
 # -------------------------------
 
-def pdf_search(query: str, top_k: int = 3):
+def pdf_search(query: str, top_k: int = 3, namespace: str = NAMESPACE_PDF):
     q_emb = default_embedder.generate_embedding(query)
     if not q_emb:
         return []
 
-    candidates = faiss_manager.search(NAMESPACE_PDF, q_emb, top_k=top_k)
+    # Use the given FAISS namespace
+    candidates = faiss_manager.search(namespace, q_emb, top_k=top_k)
 
     results = []
 
