@@ -22,7 +22,7 @@ from .sub_views.pdf_chat_view import pdf_chat_view
 from .sub_views.ticket_view import generate_ticket_from_chat, auto_ticket_summary_view
 
 from cb_app.sub_views.webchat_view import webchat_view
-
+from .sub_views.crawl_view import crawl_site_view
 # Optional API views — import if present (fail gracefully if not)
 try:
     from .sub_views.api_chat_view import api_chat
@@ -48,6 +48,7 @@ __all__ = [
     "generate_ticket_from_chat",
     "auto_ticket_summary_view",
     "webchat_view",
+    "crawl_site_view"
 
 ]
 
