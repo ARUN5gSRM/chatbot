@@ -7,15 +7,42 @@
 
     <div class="collapse navbar-collapse" id="navMain">
       <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="{% url 'cb_app:index' %}">Home</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'cb_app:upload' %}">Upload</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'cb_app:chatbot' %}">Chat</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'cb_app:upload_pdf' %}">Upload PDF</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'cb_app:pdf_chat' %}">PDF Chat</a></li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'cb_app:index' %}">Home</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'cb_app:upload' %}">Upload</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'cb_app:chatbot' %}">Chat</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'cb_app:upload_pdf' %}">Upload PDF</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'cb_app:pdf_chat' %}">PDF Chat</a>
+        </li>
+
+        <!-- ✅ NEW: Web Chat link -->
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'cb_app:web_chat' %}">Web Chat</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'cb_app:crawl_site' %}">Crawl Site</a>
+        </li>
+
+        <!-- END -->
 
         {% if user.is_authenticated %}
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="userMenu" data-bs-toggle="dropdown">{{ user.username }}</a>
+            <a class="nav-link dropdown-toggle" href="#" id="userMenu" data-bs-toggle="dropdown">
+              {{ user.username }}
+            </a>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
               <li><a class="dropdown-item" href="{% url 'cb_app:upload' %}">Upload Data</a></li>
               <li><a class="dropdown-item" href="{% url 'cb_app:chatbot' %}">Chatbot</a></li>
@@ -24,8 +51,13 @@
             </ul>
           </li>
         {% else %}
-          <li class="nav-item"><a class="nav-link" href="{% url 'cb_app:login' %}">Login</a></li>
-          <li class="nav-item"><a class="nav-link" href="{% url 'cb_app:signup' %}">Signup</a></li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'cb_app:login' %}">Login</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'cb_app:signup' %}">Signup</a>
+          </li>
         {% endif %}
       </ul>
     </div>

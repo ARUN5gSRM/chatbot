@@ -7,7 +7,7 @@ import re
 import pandas as pd
 from django.contrib.auth.models import User
 from cb_app.models import Ticket, PDFDocument, PDFChunk
-from .embedding_model import default_embedder
+from .embedding_model import default_embedder, EMBED_DIM
 from .index_manager import faiss_manager
 
 def parse_resolution_notes(notes: str):
@@ -82,7 +82,7 @@ def ingest_excel_file(file_obj, uploaded_by_user):
             uploaded_by = uploaded_by_user
         )
         combined_text = " ".join(filter(None, [t.short_description, t.description, t.keywords])).strip()
-        emb = default_embedder.generate_embedding(combined_text) if combined_text else [0.0] * 384
+        emb = default_embedder.generate_embedding(combined_text) if combined_text else [0.0] * EMBED_DIM
         t.embedding = emb
         t.save(update_fields=["embedding"])
         new_ids.append(t.id)
@@ -91,6 +91,11 @@ def ingest_excel_file(file_obj, uploaded_by_user):
 
     # update FAISS
     if new_ids:
-        faiss_manager.add("tickets", new_ids, new_vectors)
+        # use safe_add to avoid races
+        try:
+            faiss_manager.safe_add("tickets", new_ids, new_vectors)
+        except Exception as e:
+            # fallback to non-safe add if desired, but propagate error for now
+            faiss_manager.add("tickets", new_ids, new_vectors)
 
     return {"created_count": len(created), "ids": created}

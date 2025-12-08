@@ -11,7 +11,6 @@ from cb_app.logic.index_manager import faiss_manager
 def upload_view(request):
     message = ""
     if request.method == "POST":
-        # Support AJAX/form file upload
         excel_file = request.FILES.get("file")
         if not excel_file:
             message = "No file uploaded."
@@ -21,26 +20,26 @@ def upload_view(request):
 
         try:
             res = ingest_excel_file(excel_file, request.user)
-            message = f"✅ Uploaded. Inserted {res.get('created_count',0)} rows."
+            message = f"✅ Uploaded. Inserted {res.get('created_count', 0)} rows."
 
             # Incrementally add new embeddings to any active session-scoped indices
-            # Each active session index whose name startswith 'tickets_session_' gets the new vectors
-            # We must query DB for embeddings of returned ids
             ids = res.get("ids", [])
             if ids:
                 from cb_app.models import Ticket
                 rows = list(Ticket.objects.filter(id__in=ids).values_list("id", "embedding"))
-                # rows: list of (id, emb)
-                # For each active index, add the new vectors
+
+                # For each active index whose namespace starts with tickets_session_
                 for ns in list(faiss_manager.indices.keys()):
                     if ns.startswith("tickets_session_"):
                         object_ids = [r[0] for r in rows if r[1]]
                         vectors = [r[1] for r in rows if r[1]]
                         if object_ids and vectors:
-                            faiss_manager.add(ns, object_ids, vectors)
+                            # SAFETY PATCH: use safe_add instead of add
+                            faiss_manager.safe_add(ns, object_ids, vectors)
 
             if request.content_type == "application/json" or request.headers.get("x-requested-with") == "XMLHttpRequest":
                 return JsonResponse({"message": message})
+
         except Exception as e:
             message = f"❌ Error: {e}"
             if request.content_type == "application/json":

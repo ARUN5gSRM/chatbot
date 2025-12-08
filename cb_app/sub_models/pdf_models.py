@@ -1,3 +1,4 @@
+# cb_app/models/pdf_models.py
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
@@ -19,7 +20,7 @@ class PDFDocument(models.Model):
 class PDFChunk(models.Model):
     document = models.ForeignKey(PDFDocument, on_delete=models.CASCADE, related_name="chunks")
     text = models.TextField()
-    embedding = ArrayField(models.FloatField(), size=384, null=True, blank=True)
+    embedding = ArrayField(models.FloatField(), size=768, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     token_start = models.IntegerField(null=True, blank=True)
     token_end = models.IntegerField(null=True, blank=True)

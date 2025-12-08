@@ -13,7 +13,6 @@ from cb_app.models import Ticket
 import numpy as np
 
 DEFAULT_TOP_K = 3
-# Recommended default for multi-qa-MiniLM-L6-cos-v1 (calibrate later if needed)
 DEFAULT_THRESHOLD = 0.70
 FETCH_FACTOR = 5
 
@@ -21,11 +20,6 @@ NAMESPACE_TICKETS = "tickets"
 
 
 def _pg_cosine_search(query_vec: List[float], top_k: int = DEFAULT_TOP_K * FETCH_FACTOR):
-    """
-    Perform cosine-like search inside Postgres by computing dot product between
-    stored embedding and provided normalized query vector. Expects query_vec to
-    be a Python list of floats (normalized).
-    """
     if not query_vec:
         return []
 
@@ -57,7 +51,6 @@ def _pg_cosine_search(query_vec: List[float], top_k: int = DEFAULT_TOP_K * FETCH
 
 
 def _normalize_vector_safe(vec: Any) -> Optional[np.ndarray]:
-    """Return a float32 L2-normalized 1D numpy array or None if invalid."""
     try:
         arr = np.array(vec, dtype="float32")
     except Exception:
@@ -77,28 +70,34 @@ def semantic_search(
     threshold: float = DEFAULT_THRESHOLD,
     namespace: str = NAMESPACE_TICKETS,
 ):
-    """
-    Perform semantic retrieval:
-    1) Embed + normalize query
-    2) Try FAISS first (fast) in the given namespace
-    3) Fallback to Postgres dot-product if FAISS has no vectors
-    4) Filter by configured threshold and return top_k results
-    """
+    # Embed query
     q_emb = embedding_model.generate_embedding(query)
     if not q_emb:
         return []
 
-    # Defensive normalization / dtype conversion
     q_arr = _normalize_vector_safe(q_emb)
     if q_arr is None:
         return []
 
-    # Try FAISS (faiss_manager will also normalize internally, but we normalize here too)
-    candidates = faiss_manager.search(namespace, q_arr, top_k=top_k * FETCH_FACTOR)
+    # Ensure FAISS index exists and is populated (safe)
+    faiss_manager.safe_build_from_db_if_empty(
+        namespace,
+        lambda: list(
+            Ticket.objects.filter(embedding__isnull=False)
+            .values_list("id", "embedding")
+        )
+    )
+
+    # Try FAISS search safely
+    candidates = faiss_manager.safe_search(
+        namespace,
+        q_arr,
+        top_k=top_k * FETCH_FACTOR
+    )
+
     results: List[Dict[str, Any]] = []
 
     if candidates:
-        # candidates: list of (object_id, score) where score is inner-product (== cosine if normalized)
         ids = [c[0] for c in candidates]
         tickets = {t.id: t for t in Ticket.objects.filter(id__in=ids)}
         for obj_id, score in candidates:
@@ -112,11 +111,9 @@ def semantic_search(
                 "score": round(float(score), 4)
             })
     else:
-        # Fallback to Postgres cosine (pass normalized list)
         q_list = q_arr.tolist()
         results = _pg_cosine_search(q_list, top_k=top_k * FETCH_FACTOR)
 
-    # Filter by threshold and return top_k
     filtered = [r for r in results if r["score"] >= threshold]
     filtered = sorted(filtered, key=lambda x: x["score"], reverse=True)
     return filtered[:top_k]
@@ -130,10 +127,6 @@ def chatbot_search(
     threshold: float = DEFAULT_THRESHOLD,
     namespace: str = NAMESPACE_TICKETS,
 ):
-    """
-    Main chatbot wrapper: maintain session history, run semantic search and
-    append assistant message.
-    """
     init_session_history_if_needed(request)
     append_user_message(request, query)
 
@@ -145,7 +138,6 @@ def chatbot_search(
         namespace=namespace,
     )
 
-    # Store context for ticket generation / debugging
     request.session["last_query"] = query
     request.session["last_threshold"] = threshold
     request.session["last_results"] = [h["id"] for h in hits]

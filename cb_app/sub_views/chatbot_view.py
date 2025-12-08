@@ -17,21 +17,26 @@ def _ensure_session_namespace(request) -> str:
     """
     Ensure the current HTTP session has a DB-backed session_key and a
     session-scoped FAISS namespace built from DB embeddings (lazy build).
+    Uses SAFE FAISS wrappers.
     Returns the namespace name.
     """
-    # Ensure session exists and has a session_key
     if not request.session.session_key:
         request.session.save()
+
     session_key = request.session.session_key
     ns = f"{NAMESPACE_TICKETS_BASE}{session_key}"
 
-    idx = faiss_manager.get(ns)
-    # Build lazily if empty
-    if idx.index.ntotal == 0:
-        def fetch():
-            qs = Ticket.objects.filter(embedding__isnull=False).values_list("id", "embedding")
-            return list(qs)
-        faiss_manager.build_from_db(ns, fetch)
+    # SAFE: ensures index exists
+    faiss_manager.safe_get_or_create(ns)
+
+    # SAFE: build from DB if empty
+    faiss_manager.safe_build_from_db_if_empty(
+        ns,
+        lambda: list(
+            Ticket.objects.filter(embedding__isnull=False).values_list("id", "embedding")
+        )
+    )
+
     return ns
 
 
@@ -47,24 +52,23 @@ def chatbot_view(request):
     results = {}
 
     if request.method == "POST":
-        # Accept both JSON (AJAX) and form POST
         try:
             if request.content_type == "application/json":
                 payload = json.loads(request.body.decode("utf-8") or "{}")
                 query = (payload.get("query") or "").strip()
             else:
                 query = (request.POST.get("query") or "").strip()
+
         except Exception:
             return HttpResponseBadRequest("Invalid request payload")
 
         if query:
-            # ensure session-scoped index exists and is built, and get its namespace
+            # SAFE namespace creation / FAISS build
             ns = _ensure_session_namespace(request)
 
-            # Run chatbot search (this will update session history inside)
+            # Run chatbot search using safe FAISS namespace
             results = chatbot_search(request, query, namespace=ns)
 
-            # If AJAX/json requested, return JSON
             if request.content_type == "application/json" or request.headers.get("x-requested-with") == "XMLHttpRequest":
                 return JsonResponse(results)
 
@@ -79,18 +83,16 @@ def chatbot_view(request):
 def clear_chat_view(request):
     """
     Clear conversation session state and remove session-scoped FAISS index.
-    Prefer POST for destructive action (form in template uses POST).
+    SAFE removal using safe_pop().
     """
-    # Clear session conversation and related keys centrally
     clear_conversation(request)
 
-    # Remove session-scoped FAISS index if present
     if not request.session.session_key:
         request.session.save()
+
     session_key = request.session.session_key
     if session_key:
-        tickets_ns = f"{NAMESPACE_TICKETS_BASE}{session_key}"
-        if tickets_ns in faiss_manager.indices:
-            faiss_manager.indices.pop(tickets_ns, None)
+        ns = f"{NAMESPACE_TICKETS_BASE}{session_key}"
+        faiss_manager.safe_pop(ns)
 
     return redirect("cb_app:chatbot")

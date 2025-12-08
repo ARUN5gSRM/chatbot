@@ -61,6 +61,15 @@
           <a class="nav-link {% if '/pdf-chat' in request.path %}active{% endif %}" href="{% url 'cb_app:pdf_chat' %}">
             <i class="bi bi-search me-2"></i> PDF Chat
           </a>
+          <!-- NEW: Web Chat -->
+          <a class="nav-link {% if '/web-chat' in request.path %}active{% endif %}" href="{% url 'cb_app:web_chat' %}">
+            <i class="bi bi-globe2 me-2"></i> Web Chat
+          </a>
+
+          <!-- NEW: Crawl Site -->
+          <a class="nav-link {% if '/crawl-site' in request.path %}active{% endif %}" href="{% url 'cb_app:crawl_site' %}">
+            <i class="bi bi-globe-americas me-2"></i> Crawl Site
+          </a>
 
           <hr class="border-light my-2">
 

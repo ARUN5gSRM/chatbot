@@ -17,14 +17,18 @@ def upload_pdf_view(request):
             messages.error(request, "Please upload a valid PDF.")
             return redirect("cb_app:upload_pdf")
 
-        pdf_doc = PDFDocument.objects.create(uploaded_by=request.user, title=pdf_file.name, pdf_file=pdf_file)
-        # extract & chunk
+        pdf_doc = PDFDocument.objects.create(
+            uploaded_by=request.user, title=pdf_file.name, pdf_file=pdf_file
+        )
+
+        # Extract → chunk → embed
         text = extract_text_from_pdf(pdf_doc.pdf_file.path)
         chunks = chunk_text(text)
         embeddings = embed_texts(chunks)
 
         new_ids = []
         new_vectors = []
+
         for t, e in zip(chunks, embeddings):
             chunk = PDFChunk.objects.create(document=pdf_doc, text=t, embedding=e)
             new_ids.append(chunk.id)
@@ -33,9 +37,13 @@ def upload_pdf_view(request):
         # Add to any active pdf session indices
         for ns in list(faiss_manager.indices.keys()):
             if ns.startswith(NAMESPACE_PDF_BASE):
-                faiss_manager.add(ns, new_ids, new_vectors)
+                # SAFETY PATCH: replace .add with safe_add
+                faiss_manager.safe_add(ns, new_ids, new_vectors)
 
-        messages.success(request, f"✅ {pdf_file.name} uploaded and processed successfully!")
+        messages.success(
+            request,
+            f"✅ {pdf_file.name} uploaded and processed successfully!"
+        )
         return redirect("cb_app:pdf_chat")
 
     return render(request, "cb_app/upload_pdf.html")

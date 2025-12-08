@@ -10,7 +10,8 @@ from .sub_views.upload_view import upload_view
 from .sub_views.pdf_upload_view import upload_pdf_view
 from .sub_views.pdf_chat_view import pdf_chat_view
 from .sub_views.ticket_view import generate_ticket_from_chat, auto_ticket_summary_view
-
+from cb_app.sub_views.crawl_view import crawl_site_view
+from cb_app.sub_views.webchat_view import webchat_view
 # optional API views (import safely)
 try:
     from .sub_views.api_chat_view import api_chat
@@ -45,6 +46,12 @@ urlpatterns = [
     # Auto-ticket
     path("auto-ticket/", generate_ticket_from_chat, name="auto_ticket"),
     path("auto-ticket/<str:ticket_id>/", auto_ticket_summary_view, name="auto_ticket_summary"),
+    # NEW — Web Chat (fixed name)
+    path("web-chat/", webchat_view, name="web_chat"),
+
+    # NEW — Crawl Site
+    path("crawl-site/", crawl_site_view, name="crawl_site"),
+
 ]
 
 # Add optional API routes if modules are present

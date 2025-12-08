@@ -2,7 +2,7 @@
 from typing import List
 import numpy as np
 
-def normalize_vector(vec: List[float], dim: int = 384) -> List[float]:
+def normalize_vector(vec: List[float], dim: int = 768) -> List[float]:
     a = np.array(vec, dtype=float)
     norm = np.linalg.norm(a)
     if norm == 0 or np.isnan(norm):

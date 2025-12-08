@@ -1,3 +1,4 @@
+# cb_app/models/ticket_models.py
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
@@ -13,7 +14,7 @@ class Ticket(models.Model):
     rca = models.TextField(null=True, blank=True)
     uploaded_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    embedding = ArrayField(models.FloatField(), size=384, null=True, blank=True)
+    embedding = ArrayField(models.FloatField(), size=768, null=True, blank=True)
 
     class Meta:
         db_table = "tickets_final"
