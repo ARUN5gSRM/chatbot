@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.postgres',
-    'cb_app'
+    'ss_app'
 ]
 
 MIDDLEWARE = [
@@ -128,7 +128,7 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'   # (optional but recommended)
 
 STATICFILES_DIRS = [
-    BASE_DIR / "cb_app" / "static",
+    BASE_DIR / "ss_app" / "static",
 ]
 
 STATIC_ROOT = BASE_DIR / "staticfiles"

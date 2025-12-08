@@ -1,0 +1,22 @@
+{% extends "ss_app/base.html" %}
+{% block title %}Upload Excel | Chatbot{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+  <div class="col-md-6">
+    <div class="card p-4 shadow-sm">
+      <h4 class="mb-3">📁 Upload Excel</h4>
+      {% if message %}<div class="alert alert-info">{{ message }}</div>{% endif %}
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+          <input type="file" name="file" accept=".xlsx,.xls" class="form-control" required>
+        </div>
+        <div class="d-grid">
+          <button class="btn btn-success">Upload</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

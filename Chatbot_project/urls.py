@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("cb_app.urls", namespace="cb_app")),
+    path("", include("ss_app.urls", namespace="ss_app")),
 ]
 
 # Serve static/media in development
