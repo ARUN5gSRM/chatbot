@@ -8,7 +8,6 @@ from nltk.tokenize import sent_tokenize
 from .embedding_model import default_embedder
 from .index_manager import faiss_manager
 from ss_app.models import PDFChunk
-from django.db import connection
 
 NAMESPACE_PDF = "pdf_chunks"
 
@@ -25,13 +24,17 @@ def extract_text_from_pdf(pdf_path: str) -> Dict[str, List[str]]:
         for block in blocks:
             if "lines" not in block:
                 continue
+
             line_text = " ".join(
                 span["text"].strip()
                 for line in block["lines"]
                 for span in line["spans"]
             ).strip()
+
             if not line_text:
                 continue
+
+            # crude heading detection
             if (
                 line_text.isupper()
                 or len(line_text.split()) <= 6
@@ -41,6 +44,7 @@ def extract_text_from_pdf(pdf_path: str) -> Dict[str, List[str]]:
             else:
                 paragraphs.append(line_text)
 
+        # table extraction
         try:
             tables_on_page = page.find_tables()
             for table in tables_on_page.tables:
@@ -60,12 +64,18 @@ def extract_text_from_pdf(pdf_path: str) -> Dict[str, List[str]]:
 def chunk_text(text_data: Dict[str, List[str]], max_tokens: int = 160, overlap_sentences: int = 2) -> List[str]:
     combined = []
 
+    # prepend headings
     for h in text_data.get("headings", []):
         combined.append(f"HEADING: {h}")
+
+    # main body
     combined.extend(text_data.get("paragraphs", []))
+
+    # append table blocks
     for t in text_data.get("tables", []):
         combined.append(f"TABLE:\n{t}")
 
+    # sentence tokenize
     sentences = []
     for block in combined:
         try:
@@ -73,12 +83,14 @@ def chunk_text(text_data: Dict[str, List[str]], max_tokens: int = 160, overlap_s
         except Exception:
             sentences.append(block)
 
+    # chunk construction
     chunks = []
     current = []
     curr_len = 0
 
     for sent in sentences:
         token_est = len(sent.split())
+
         if curr_len + token_est >= max_tokens:
             chunks.append(" ".join(current))
             current = current[-overlap_sentences:]
@@ -97,35 +109,15 @@ def embed_texts(texts: List[str]) -> List[List[float]]:
     return default_embedder.generate_batch(texts)
 
 
-def _pg_pdf_fullscan(q_emb: List[float], top_k: int = 3):
-    q_pg = "ARRAY[%s]::double precision[]" % ",".join(map(str, q_emb))
-    sql = f"""
-    SELECT id, text,
-      (SELECT SUM(e1 * e2)
-         FROM unnest(embedding) WITH ORDINALITY AS a(e1, idx)
-         JOIN unnest({q_pg}) WITH ORDINALITY AS b(e2, idx) USING (idx)
-      ) AS score
-    FROM pdf_chunks
-    WHERE embedding IS NOT NULL
-    ORDER BY score DESC
-    LIMIT %s;
-    """
-    with connection.cursor() as cur:
-        cur.execute(sql, [top_k])
-        rows = cur.fetchall()
-
-    out = []
-    for i, r in enumerate(rows, start=1):
-        out.append({"rank": i, "text": r[1], "score": float(r[2] or 0.0)})
-    return out
-
-
 def pdf_search(query: str, top_k: int = 3, namespace: str = NAMESPACE_PDF):
+    """
+    FAISS-only semantic search.
+    """
     q_emb = default_embedder.generate_embedding(query)
     if not q_emb:
         return []
 
-    # Ensure FAISS index is built safely
+    # Ensure FAISS index exists or build it once
     faiss_manager.safe_build_from_db_if_empty(
         namespace,
         lambda: list(
@@ -134,7 +126,7 @@ def pdf_search(query: str, top_k: int = 3, namespace: str = NAMESPACE_PDF):
         )
     )
 
-    # FAISS search
+    # FAISS vector search
     candidates = faiss_manager.safe_search(namespace, q_emb, top_k=top_k)
 
     results = []
@@ -150,7 +142,5 @@ def pdf_search(query: str, top_k: int = 3, namespace: str = NAMESPACE_PDF):
                     "text": c.text,
                     "score": round(float(score), 4)
                 })
-    else:
-        results = _pg_pdf_fullscan(q_emb, top_k=top_k)
 
     return results

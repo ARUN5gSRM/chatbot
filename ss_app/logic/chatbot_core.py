@@ -1,6 +1,5 @@
 # ss_app/logic/chatbot_core.py
 from typing import List, Dict, Any, Optional
-from django.db import connection
 from .session_helpers import (
     init_session_history_if_needed,
     append_user_message,
@@ -13,41 +12,13 @@ from ss_app.models import Ticket
 import numpy as np
 
 DEFAULT_TOP_K = 3
-DEFAULT_THRESHOLD = 0.70
+DEFAULT_THRESHOLD = 0.80
 FETCH_FACTOR = 5
 
 NAMESPACE_TICKETS = "tickets"
 
 
-def _pg_cosine_search(query_vec: List[float], top_k: int = DEFAULT_TOP_K * FETCH_FACTOR):
-    if not query_vec:
-        return []
-
-    q_pg = "ARRAY[%s]::double precision[]" % ",".join(map(str, query_vec))
-    sql = f"""
-    SELECT id, short_description, solution,
-      (SELECT SUM(e1 * e2)
-         FROM unnest(embedding) WITH ORDINALITY AS a(e1, idx)
-         JOIN unnest({q_pg}) WITH ORDINALITY AS b(e2, idx) USING (idx)
-      ) AS score
-    FROM tickets_final
-    WHERE embedding IS NOT NULL
-    ORDER BY score DESC
-    LIMIT %s;
-    """
-    with connection.cursor() as cur:
-        cur.execute(sql, [top_k])
-        rows = cur.fetchall()
-
-    results = []
-    for r in rows:
-        results.append({
-            "id": r[0],
-            "short_description": r[1],
-            "solution": r[2],
-            "score": float(r[3] or 0.0)
-        })
-    return results
+# No SQL fallback – FAISS only.
 
 
 def _normalize_vector_safe(vec: Any) -> Optional[np.ndarray]:
@@ -79,7 +50,7 @@ def semantic_search(
     if q_arr is None:
         return []
 
-    # Ensure FAISS index exists and is populated (safe)
+    # Ensure FAISS index is ready
     faiss_manager.safe_build_from_db_if_empty(
         namespace,
         lambda: list(
@@ -88,7 +59,7 @@ def semantic_search(
         )
     )
 
-    # Try FAISS search safely
+    # Run FAISS search
     candidates = faiss_manager.safe_search(
         namespace,
         q_arr,
@@ -100,20 +71,24 @@ def semantic_search(
     if candidates:
         ids = [c[0] for c in candidates]
         tickets = {t.id: t for t in Ticket.objects.filter(id__in=ids)}
+
         for obj_id, score in candidates:
             t = tickets.get(obj_id)
             if not t:
                 continue
+
             results.append({
                 "id": t.id,
                 "short_description": t.short_description,
                 "solution": t.solution,
-                "score": round(float(score), 4)
+                "rca": t.rca,
+                "score": round(float(score), 4),
             })
-    else:
-        q_list = q_arr.tolist()
-        results = _pg_cosine_search(q_list, top_k=top_k * FETCH_FACTOR)
 
+    if not results:
+        return []
+
+    # Apply threshold
     filtered = [r for r in results if r["score"] >= threshold]
     filtered = sorted(filtered, key=lambda x: x["score"], reverse=True)
     return filtered[:top_k]
@@ -152,8 +127,14 @@ def chatbot_search(
             "chat_history": get_recent_conversation(request)
         }
 
+    # Response formatting in required order:
+    # Short Description → RCA → Solution → Similarity
     combined_text = "\n\n".join([
-        f"Ticket {i+1}: {h['short_description']}\nSolution: {h['solution']}\n(Similarity: {h['score']})"
+        f"Ticket {i+1}:\n"
+        f"Short Description: {h['short_description']}\n"
+        f"RCA: {h['rca']}\n"
+        f"Solution: {h['solution']}\n"
+        f"(Similarity: {h['score']})"
         for i, h in enumerate(hits)
     ])
 
