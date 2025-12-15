@@ -2,10 +2,10 @@
 """
 Fully offline embedding loader for nomic-embed-text-v1.5 (768-d)
 
-STRICT OFFLINE GUARANTEE:
-- Uses ONLY local model files
+IMPORTANT:
+- This does NOT use SentenceTransformer
+- Uses ONLY local files
 - NEVER connects to internet
-- NEVER downloads anything
 """
 
 from typing import List, Optional
@@ -13,7 +13,7 @@ import numpy as np
 import os
 import torch
 
-# 🔒 Force HuggingFace into offline mode at process level
+# 🔒 Force HuggingFace into offline mode (NO network, NO SSL calls)
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
@@ -22,12 +22,13 @@ from transformers import AutoTokenizer, AutoModel
 
 EMBED_DIM = 768
 
+# ✅ Correct local path (unchanged)
 LOCAL_MODEL_PATH = r"C:\Users\venka\PycharmProjects\upchat\Chatbot_project\local_models\nomic-embed-text-v1.5"
 
 
 class EmbeddingModel:
     """
-    Lazy-loaded embedding model for fully offline use.
+    Lazy-loaded embedding model for offline use.
     """
     def __init__(self):
         self.model = None
@@ -35,27 +36,28 @@ class EmbeddingModel:
         self.dim = EMBED_DIM
 
     def _ensure_loaded(self):
-        """Load model/tokenizer lazily. HARD FAIL if any file is missing."""
+        """Load model/tokenizer lazily using ONLY local files."""
         if self.model is not None:
             return
 
         if not os.path.isdir(LOCAL_MODEL_PATH):
             raise RuntimeError(
-                f"❌ Local embedding model directory not found:\n{LOCAL_MODEL_PATH}"
+                f"❌ Local embedding model not found:\n{LOCAL_MODEL_PATH}"
             )
 
-        # 🚫 tokenizer — offline only
+        # ✅ Tokenizer: local only
         self.tokenizer = AutoTokenizer.from_pretrained(
             LOCAL_MODEL_PATH,
+            local_files_only=True,
             trust_remote_code=True,
-            local_files_only=True,   # 🔒 critical
         )
 
-        # 🚫 model — offline only
+        # ✅ Model: local only + safetensors enforced
         self.model = AutoModel.from_pretrained(
             LOCAL_MODEL_PATH,
+            local_files_only=True,
             trust_remote_code=True,
-            local_files_only=True,   # 🔒 critical
+            use_safetensors=True,
         )
 
         self.model.eval()
@@ -80,8 +82,8 @@ class EmbeddingModel:
 
         summed = (last_hidden * mask).sum(dim=1)
         counts = mask.sum(dim=1).clamp(min=1e-9)
-
         pooled = summed / counts
+
         arr = pooled.cpu().numpy()
 
         if arr.shape[1] != EMBED_DIM:
