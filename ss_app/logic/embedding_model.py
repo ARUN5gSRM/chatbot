@@ -1,28 +1,22 @@
-# ss_app/sub_models/embedding_model.py
 """
 Fully offline embedding loader for nomic-embed-text-v1.5 (768-d)
 
 IMPORTANT:
-- This does NOT use SentenceTransformer
-- Uses ONLY local files
-- NEVER connects to internet
+- This does NOT use SentenceTransformer (Nomic models are NOT compatible)
+- This loads the model from LOCAL DISK using HuggingFace transformers
+- Requires: pip install transformers accelerate sentencepiece torch
+- No internet needed after the model directory exists locally
 """
 
 from typing import List, Optional
 import numpy as np
 import os
 import torch
-
-# 🔒 Force HuggingFace into offline mode (NO network, NO SSL calls)
-os.environ["TRANSFORMERS_OFFLINE"] = "1"
-os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
-os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
-
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoTokenizer, AutoModel, AutoConfig
 
 EMBED_DIM = 768
 
-# ✅ Correct local path (unchanged)
+# ✅ FIX 1: correct folder name (local_models, not local_model)
 LOCAL_MODEL_PATH = r"C:\Users\venka\PycharmProjects\upchat\Chatbot_project\local_models\nomic-embed-text-v1.5"
 
 
@@ -36,31 +30,43 @@ class EmbeddingModel:
         self.dim = EMBED_DIM
 
     def _ensure_loaded(self):
-        """Load model/tokenizer lazily using ONLY local files."""
+        """Load model/tokenizer lazily to avoid Django import crashes."""
         if self.model is not None:
             return
 
-        if not os.path.isdir(LOCAL_MODEL_PATH):
+        if not os.path.exists(LOCAL_MODEL_PATH):
             raise RuntimeError(
-                f"❌ Local embedding model not found:\n{LOCAL_MODEL_PATH}"
+                f"❌ Local embedding model not found:\n{LOCAL_MODEL_PATH}\n"
+                "Make sure the model files are downloaded properly."
             )
 
-        # ✅ Tokenizer: local only
-        self.tokenizer = AutoTokenizer.from_pretrained(
+        # ✅ FIX 2: load AutoConfig WITH trust_remote_code=True
+        config = AutoConfig.from_pretrained(
             LOCAL_MODEL_PATH,
-            local_files_only=True,
             trust_remote_code=True,
+            local_files_only=True,
         )
 
-        # ✅ Model: local only + safetensors enforced
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            LOCAL_MODEL_PATH,
+            trust_remote_code=True,
+            local_files_only=True,
+        )
+
         self.model = AutoModel.from_pretrained(
             LOCAL_MODEL_PATH,
-            local_files_only=True,
+            config=config,
             trust_remote_code=True,
-            use_safetensors=True,
+            local_files_only=True,
         )
 
         self.model.eval()
+
+    def _normalize(self, vec):
+        norm = np.linalg.norm(vec)
+        if norm == 0 or np.isnan(norm):
+            return [0.0] * self.dim
+        return (vec / norm).tolist()
 
     def _embed_batch(self, texts: List[str]) -> List[List[float]]:
         """Create embeddings using mean pooling."""
@@ -77,13 +83,14 @@ class EmbeddingModel:
         with torch.no_grad():
             outputs = self.model(**encoded)
 
-        last_hidden = outputs.last_hidden_state
+        # Mean pooling
+        last_hidden = outputs.last_hidden_state  # (batch, seq_len, dim)
         mask = encoded["attention_mask"].unsqueeze(-1)
 
         summed = (last_hidden * mask).sum(dim=1)
         counts = mask.sum(dim=1).clamp(min=1e-9)
-        pooled = summed / counts
 
+        pooled = summed / counts  # (batch, dim)
         arr = pooled.cpu().numpy()
 
         if arr.shape[1] != EMBED_DIM:
