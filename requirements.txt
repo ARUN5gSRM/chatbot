@@ -5,8 +5,11 @@ scipy
 torch
 transformers
 sentence-transformers
-huggingface-hub
 tokenizers
+sentencepiece
+accelerate
+huggingface-hub
+
 
 faiss-cpu
 
