@@ -1,7 +1,10 @@
-
-from typing import List, Optional
-import numpy as np
 import os
+from typing import List, Optional
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ["HF_DATASETS_OFFLINE"] = "1"
+import numpy as np
+
 import torch
 from transformers import AutoTokenizer, AutoModel, AutoConfig
 
@@ -12,9 +15,7 @@ LOCAL_MODEL_PATH = r"C:\Users\venka\PycharmProjects\upchat\Chatbot_project\local
 
 
 
-os.environ["HF_HUB_OFFLINE"] = "1"
-os.environ["TRANSFORMERS_OFFLINE"] = "1"
-os.environ["HF_DATASETS_OFFLINE"] = "1"
+
 class EmbeddingModel:
     """
     Lazy-loaded embedding model for offline use.
