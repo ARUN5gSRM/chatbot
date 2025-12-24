@@ -1,12 +1,3 @@
-"""
-Fully offline embedding loader for nomic-embed-text-v1.5 (768-d)
-
-IMPORTANT:
-- This does NOT use SentenceTransformer (Nomic models are NOT compatible)
-- This loads the model from LOCAL DISK using HuggingFace transformers
-- Requires: pip install transformers accelerate sentencepiece torch
-- No internet needed after the model directory exists locally
-"""
 
 from typing import List, Optional
 import numpy as np
@@ -20,6 +11,10 @@ EMBED_DIM = 768
 LOCAL_MODEL_PATH = r"C:\Users\venka\PycharmProjects\upchat\Chatbot_project\local_models\nomic-embed-text-v1.5"
 
 
+
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ["HF_DATASETS_OFFLINE"] = "1"
 class EmbeddingModel:
     """
     Lazy-loaded embedding model for offline use.
