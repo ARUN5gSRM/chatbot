@@ -1,60 +1,65 @@
 import os
 from typing import List, Optional
+import numpy as np
 
-# ------------------------------------------------------------------
-# FORCE HUGGING FACE & TRANSFORMERS TO OFFLINE MODE (BEFORE IMPORTS)
-# ------------------------------------------------------------------
+import torch
+from transformers import AutoTokenizer, AutoModel, AutoConfig
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_DATASETS_OFFLINE"] = "1"
 os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
 
-import numpy as np
-from sentence_transformers import SentenceTransformer
 
-# ------------------------------------------------------------------
-# CONSTANTS
-# ------------------------------------------------------------------
 EMBED_DIM = 768
 
-# IMPORTANT: This path MUST point to the folder that contains:
-# config_sentence_transformers.json, modules.json, 1_Pooling/, model.safetensors
-LOCAL_MODEL_PATH = (
-    r"C:\Users\venka\PycharmProjects\upchat\Chatbot_project"
-    r"\local_models\nomic-embed-text-v1.5"
-)
+
+LOCAL_MODEL_PATH = r"C:\Users\waltjos01\PycharmProjects\self_serve_v2.0\ss\local_models\nomic-embed-text-v1.5"
+
+
 
 
 class EmbeddingModel:
     """
-    Lazy-loaded embedding model for OFFLINE use.
-    NO INTERNET CALLS.
-    Django-safe.
+    Lazy-loaded embedding model for offline use.
     """
-
     def __init__(self):
         self.model = None
+        self.tokenizer = None
         self.dim = EMBED_DIM
 
     def _ensure_loaded(self):
-        """Load model lazily to avoid Django startup crashes."""
+        """Load model/tokenizer lazily to avoid Django import crashes."""
         if self.model is not None:
             return
 
         if not os.path.exists(LOCAL_MODEL_PATH):
             raise RuntimeError(
                 f"❌ Local embedding model not found:\n{LOCAL_MODEL_PATH}\n"
-                "Ensure the SentenceTransformer model files exist."
+                "Make sure the model files are downloaded properly."
             )
 
-        # ------------------------------------------------------------------
-        # CORRECT LOADER FOR THIS MODEL STRUCTURE
-        # ------------------------------------------------------------------
-        self.model = SentenceTransformer(
+        # ✅ FIX 2: load AutoConfig WITH trust_remote_code=True
+        config = AutoConfig.from_pretrained(
             LOCAL_MODEL_PATH,
-            device="cpu",
+            trust_remote_code=True,
+            local_files_only=True,
         )
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            LOCAL_MODEL_PATH,
+            trust_remote_code=True,
+            local_files_only=True,
+        )
+
+        self.model = AutoModel.from_pretrained(
+            LOCAL_MODEL_PATH,
+            config=config,
+            trust_remote_code=True,
+            local_files_only=True,
+        )
+
+        self.model.eval()
 
     def _normalize(self, vec):
         norm = np.linalg.norm(vec)
@@ -63,20 +68,41 @@ class EmbeddingModel:
         return (vec / norm).tolist()
 
     def _embed_batch(self, texts: List[str]) -> List[List[float]]:
+        """Create embeddings using mean pooling."""
         self._ensure_loaded()
 
-        embeddings = self.model.encode(
+        encoded = self.tokenizer(
             texts,
-            normalize_embeddings=True,
-            show_progress_bar=False,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=8192,
         )
 
-        if embeddings.shape[1] != self.dim:
+        with torch.no_grad():
+            outputs = self.model(**encoded)
+
+        # Mean pooling
+        last_hidden = outputs.last_hidden_state  # (batch, seq_len, dim)
+        mask = encoded["attention_mask"].unsqueeze(-1)
+
+        summed = (last_hidden * mask).sum(dim=1)
+        counts = mask.sum(dim=1).clamp(min=1e-9)
+
+        pooled = summed / counts  # (batch, dim)
+        arr = pooled.cpu().numpy()
+
+        if arr.shape[1] != EMBED_DIM:
             raise RuntimeError(
-                f"Model returned {embeddings.shape[1]} dims, expected {self.dim}"
+                f"Model returned {arr.shape[1]} dims, expected {EMBED_DIM}"
             )
 
-        return embeddings.tolist()
+        # L2 normalize
+        norms = np.linalg.norm(arr, axis=1, keepdims=True)
+        norms[norms == 0] = 1.0
+        arr = arr / norms
+
+        return arr.tolist()
 
     def generate_embedding(self, text: str) -> Optional[List[float]]:
         if not text or not isinstance(text, str):
@@ -89,7 +115,4 @@ class EmbeddingModel:
         return self._embed_batch(texts)
 
 
-# ------------------------------------------------------------------
-# SINGLETON INSTANCE (DO NOT CREATE PER REQUEST)
-# ------------------------------------------------------------------
 default_embedder = EmbeddingModel()
