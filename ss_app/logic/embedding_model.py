@@ -1,24 +1,20 @@
-import os
+
 from typing import List, Optional
 import numpy as np
-
+import os
 import torch
 from transformers import AutoTokenizer, AutoModel, AutoConfig
-os.environ["HF_HUB_OFFLINE"] = "1"
-os.environ["TRANSFORMERS_OFFLINE"] = "1"
-os.environ["HF_DATASETS_OFFLINE"] = "1"
-os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
-os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
-
 
 EMBED_DIM = 768
 
-
-LOCAL_MODEL_PATH = r"C:\Users\waltjos01\PycharmProjects\self_serve_v2.0\ss\local_models\nomic-embed-text-v1.5"
-
-
+# ✅ FIX 1: correct folder name (local_models, not local_model)
+LOCAL_MODEL_PATH = r"C:\Users\venka\PycharmProjects\upchat\Chatbot_project\local_model\nomic-embed-text-v1.5"
 
 
+
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+os.environ["HF_DATASETS_OFFLINE"] = "1"
 class EmbeddingModel:
     """
     Lazy-loaded embedding model for offline use.
